@@ -3,7 +3,11 @@ export default {
     template: `
         <div class="container my-5 shadow-sm p-4 rounded bg-white">
 
-            
+            <div class="row">
+                <div class="text-end my-2">
+                    <button @click="csv_export()" class="btn btn-success btn-sm">Download CSV</button>
+                </div>
+            </div>
 
             <div class="row mb-4">
                 <div class="col text-center py-3 rounded border shadow-sm" style="background-color: floralwhite;">
@@ -58,6 +62,22 @@ export default {
                     } else {
                         this.parkinglots = data
                     }
+                })
+        },
+        csv_export() {
+            fetch('/api/export')
+                .then(response => response.json())
+                .then(data => {
+                    let check_csv = setInterval(() => {
+                        fetch(`/api/csv_result/${data.id}`)
+                            .then(response => {
+                                if (response.ok) {
+                                    window.location.href = `/api/csv_result/${data.id}`
+                                    clearInterval(check_csv)
+                                    console.log("cleared from inside")
+                                } else { console.log("response not ready") }
+                            })
+                    }, 2000)
                 })
         }
     }

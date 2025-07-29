@@ -2,7 +2,11 @@ export default {
     name: 'Dashboard',
     template: `
         <div class="container">
-
+            <div class="row">
+                <div class="text-end my-2">
+                    <button @click="csv_export()" class="btn btn-success btn-sm">Download CSV</button>
+                </div>
+            </div>
 
             <div class="row mb-3">
                 <div class="p-4 bg-light shadow-sm my-4">
@@ -149,6 +153,22 @@ export default {
                 .catch(error => {
                     console.error("Search failed:", error);
                 });
+        },
+        csv_export() {
+            fetch('/api/export')
+                .then(response => response.json())
+                .then(data => {
+                    let check_csv = setInterval(() => {
+                        fetch(`/api/csv_result/${data.id}`)
+                            .then(response => {
+                                if (response.ok) {
+                                    window.location.href = `/api/csv_result/${data.id}`
+                                    clearInterval(check_csv)
+                                    console.log("cleared from inside")
+                                } else { console.log("response not ready") }
+                            })
+                    }, 2000)
+                })
         }
     }
 }

@@ -1,11 +1,13 @@
-from flask import current_app as app, jsonify, render_template, request
+from flask import current_app as app, jsonify, render_template, request, send_from_directory
 from flask_security import auth_required, login_user, logout_user, current_user, roles_required, roles_accepted, hash_password, verify_password
 from datetime import datetime
 from sqlalchemy import func
+from celery.result import AsyncResult
 
 from .database import db
 from .models import *
 from .utils import *
+from .tasks import csv_report, monthly_report
 
 
 @app.route('/', methods=['GET'])
@@ -346,4 +348,22 @@ def admin_search():
                 return jsonify({"error": "No results found"}), 404
         else:
             return jsonify({"message": "incorrect table chosen"}), 500
-    
+
+@app.route("/api/export/") # this manually triggers the job
+def export_csv():
+    user = current_user
+    roles = roles_list(user.roles)
+    if "admin" in roles:
+        user_id = None
+    elif "user" in roles:
+        user_id = user.id      
+    result = csv_report.delay(user_id=user_id) # async object
+    return jsonify({
+        "id" : result.id,
+        "result" : result.result,
+        })
+
+@app.route('/api/csv_result/<id>') # created to test the results
+def csv_result(id):
+    result = AsyncResult(id)
+    return send_from_directory('static/csv_folder', result.result, as_attachment=True)
