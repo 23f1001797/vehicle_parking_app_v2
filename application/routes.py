@@ -256,3 +256,94 @@ def get_parking_lot_availability():
         })
     
     return jsonify(lot_availability)
+
+
+@app.route('/api/admin/search', methods=['GET', 'POST'])
+def admin_search():
+        search_query = request.args.get('query', '')
+        table = request.args.get('table', '')
+        if table == "users":
+            results = User.query.filter(
+                db.or_(
+                    User.username.ilike(f"%{search_query}%"),
+                    User.email.ilike(f"%{search_query}%"),
+                    User.active.ilike(f"%{search_query}%"),
+                    db.cast(User.id, db.String).ilike(f"%{search_query}%"),
+
+                )
+            ).all()
+            if results:
+                results = [{
+                    "user_id": user.id, 
+                    "username": user.username, 
+                    "email": user.email, 
+                    "active": user.active} for user in results]
+                return jsonify(results)
+            else:
+                return jsonify({"error": "No results found"}), 404
+        elif table == "parkingLot":
+            results = ParkingLot.query.filter(
+                db.or_(
+                    ParkingLot.pl_name.ilike(f"%{search_query}%"),
+                    ParkingLot.address.ilike(f"%{search_query}%"),
+                    db.cast(ParkingLot.id, db.String).ilike(f"%{search_query}%"),
+                    db.cast(ParkingLot.price, db.String).ilike(f"%{search_query}%"),
+                    db.cast(ParkingLot.pincode, db.String).ilike(f"%{search_query}%")
+                )
+            ).all()
+            if results:
+                results = [{
+                    "lot_id": lot.id, 
+                    "pl_name": lot.pl_name, 
+                    "address": lot.address, 
+                    "pincode": lot.pincode, 
+                    "price": lot.price, 
+                    "spots_count": lot.spots_count,
+                    "capacity": lot.capacity} for lot in results]
+                return jsonify(results)
+            else:
+                return jsonify({"error": "No results found"}), 404
+        elif table == "parkingSpot":
+            results = ParkingSpot.query.filter(
+                db.or_(
+                    ParkingSpot.status.ilike(f"%{search_query}%"),
+                    db.cast(ParkingSpot.id, db.String).ilike(f"%{search_query}%"),
+                    db.cast(ParkingSpot.lot_id, db.String).ilike(f"%{search_query}%")
+                )
+            ).all()
+            if results:
+                results = [{
+                    "spot_id": spot.id, 
+                    "lot_id": spot.lot_id, 
+                    "status": spot.status} for spot in results]
+                return jsonify(results)
+            else:
+                return jsonify({"error": "No results found"}), 404
+        elif table == "reserveParkingSpot":
+            results = Reservation.query.filter(
+                db.or_(
+                    Reservation.status.ilike(f"%{search_query}%"),
+                    db.cast(Reservation.id, db.String).ilike(f"%{search_query}%"),
+                    db.cast(Reservation.user_id, db.String).ilike(f"%{search_query}%"),
+                    db.cast(Reservation.spot_id, db.String).ilike(f"%{search_query}%")
+                )
+            ).all()
+            
+            if results:
+                results = [{
+                    "reservation_id": reservation.id, 
+                    "spot_id": reservation.spot_id, 
+                    "user_id": reservation.user_id, 
+                    "vrn": reservation.vrn, 
+                    "parking_timestamp": reservation.parking_timestamp, 
+                    "leaving_timestamp": reservation.leaving_timestamp,
+                    "price": reservation.spot.lot.price,
+                    "parking_cost": reservation.parking_cost,
+                    "status": reservation.status} for reservation in results]
+                print(results)
+                return jsonify(results)
+            else:
+                return jsonify({"error": "No results found"}), 404
+        else:
+            return jsonify({"message": "incorrect table chosen"}), 500
+    
