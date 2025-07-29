@@ -4,14 +4,32 @@ import Home from './components/Home.js'
 import Login from './components/Login.js'
 import Register from './components/Register.js'
 import Admin_dashboard from './components/Admin_dashboard.js'
+import Admin_users from './components/Admin_users.js'
+import Admin_summary from './components/Admin_summary.js'
+import Admin_search from './components/Admin_search.js'
+import Create_lot from './components/Create_lot.js'
+import View_lot from './components/View_lot.js'
+import Edit_lot from './components/Edit_lot.js'
+import View_spot from './components/View_spot.js'
 import User_dashboard from './components/User_dashboard.js'
+import Book_spot from './components/Book_spot.js'
+import Release_spot from './components/Release_spot.js'
 
 const routes = [
     { path: '/', name: 'home_page', component: Home },
     { path: '/login', name: 'login_page', component: Login },
     { path: '/register', name: 'register_page', component: Register },
     { path: '/admin/dashboard', name: 'admin_dashboard_page', component: Admin_dashboard },
-    { path: '/user/:user_id/dashboard', name: 'user_dashboard_page', component: User_dashboard }
+    { path: '/admin/users', name: 'admin_users_page', component: Admin_users },
+    { path: '/admin/search', name: 'admin_search_page', component: Admin_search },
+    { path: '/admin/summary', name: 'admin_summary_page', component: Admin_summary },
+    { path: '/admin/parking_lot/create', name: 'create_parking_lot_page', component: Create_lot },
+    { path: '/admin/parking_lot/:id', name: 'view_parking_lot_page', component: View_lot },
+    { path: '/admin/parking_lot/:id/edit', name: 'edit_parking_lot_page', component: Edit_lot },
+    { path: '/admin/parking_lot/:lot_id/spots/:spot_id', name: 'view_spot_page', component: View_spot },
+    { path: '/user/:user_id/dashboard', name: 'user_dashboard_page', component: User_dashboard },
+    { path: '/user/:user_id/book/:lot_id', name: 'book_spot_page', component: Book_spot },
+    { path: '/user/:user_id/release/:reservation_id', name: 'release_spot_page', component: Release_spot },
 ]
 
 const router = new VueRouter({
