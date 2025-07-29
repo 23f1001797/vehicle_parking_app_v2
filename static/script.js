@@ -12,6 +12,7 @@ import View_lot from './components/View_lot.js'
 import Edit_lot from './components/Edit_lot.js'
 import View_spot from './components/View_spot.js'
 import User_dashboard from './components/User_dashboard.js'
+import User_summary from './components/User_summary.js'
 import Book_spot from './components/Book_spot.js'
 import Release_spot from './components/Release_spot.js'
 
@@ -28,6 +29,7 @@ const routes = [
     { path: '/admin/parking_lot/:id/edit', name: 'edit_parking_lot_page', component: Edit_lot },
     { path: '/admin/parking_lot/:lot_id/spots/:spot_id', name: 'view_spot_page', component: View_spot },
     { path: '/user/:user_id/dashboard', name: 'user_dashboard_page', component: User_dashboard },
+    { path: '/user/:user_id/summary', name: 'user_summary_page', component: User_summary },
     { path: '/user/:user_id/book/:lot_id', name: 'book_spot_page', component: Book_spot },
     { path: '/user/:user_id/release/:reservation_id', name: 'release_spot_page', component: Release_spot },
 ]

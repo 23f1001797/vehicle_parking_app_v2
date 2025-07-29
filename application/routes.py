@@ -1,6 +1,7 @@
 from flask import current_app as app, jsonify, render_template, request
 from flask_security import auth_required, login_user, logout_user, current_user, roles_required, roles_accepted, hash_password, verify_password
 from datetime import datetime
+from sqlalchemy import func
 
 from .database import db
 from .models import *
@@ -179,3 +180,79 @@ def release_spot(reserve_id):
         return jsonify({"message": "Spot released successfully"})
     else:
         return jsonify({"error": "Reservation not found"}), 404
+
+@app.route('/api/user/<int:user_id>/summary/summary_data', methods=['GET'])
+def user_spot_usage(user_id):
+    data = db.session.query(
+        ParkingLot.id.label('lot_id'),
+        ParkingLot.pl_name.label('lot_name'),
+        func.count(Reservation.id).label('times_used')
+    ).join(ParkingSpot, ParkingSpot.id == Reservation.spot_id
+    ).join(ParkingLot, ParkingLot.id == ParkingSpot.lot_id
+    ).filter(Reservation.user_id == user_id
+    ).group_by(ParkingLot.id, ParkingLot.pl_name
+    ).all()
+
+    result = [
+        {'lot_id': lot_id, 'lot_name': lot_name, 'times_used': times_used}
+        for lot_id, lot_name, times_used in data
+    ]
+
+    return jsonify(result)
+
+@app.route('/api/user/<int:user_id>/summary/duration_data', methods=['GET'])
+def user_spot_duration(user_id):
+    duration_data = Reservation.query.filter_by(user_id = user_id).all()
+    if duration_data:
+        result = [{
+            "id": r.id, 
+            "pl_name": r.spot.lot.pl_name, 
+            "parking_timestamp": r.parking_timestamp, 
+            "leaving_timestamp": r.leaving_timestamp, 
+            "duration": r.duration, 
+            "date": r.parking_timestamp.strftime('%d-%m-%Y'), 
+            "address": r.spot.lot.address, 
+            "pincode" : r.spot.lot.pincode, 
+            "cost": r.parking_cost} for r in duration_data]
+    return jsonify(result)
+
+
+@app.route('/api/admin/summary/revenue', methods=['GET'])
+def get_parking_lot_revenue():
+    results = db.session.query(
+        ParkingLot.id,
+        ParkingLot.pl_name,
+        func.sum(Reservation.parking_cost).label('total_revenue')
+    ).join(ParkingSpot, ParkingLot.id == ParkingSpot.lot_id
+    ).join(Reservation, ParkingSpot.id == Reservation.spot_id
+    ).group_by(ParkingLot.id).all()
+
+    response = [{
+        'lot_id': lot_id,
+        'pl_name': name,
+        'total_revenue': revenue or 0
+    } for lot_id, name, revenue in results]
+
+    return jsonify(response)
+
+@app.route('/api/admin/summary/availability', methods=['GET'])
+def get_parking_lot_availability():
+    # Query all parking lots
+    parking_lots = ParkingLot.query.all()
+    
+    lot_availability = []
+
+    for lot in parking_lots:
+        total_spots = lot.spots_count  # Total number of spots in this lot
+        occupied_spots = get_reserved_spots_count(lot.id)  # Get the count of occupied spots
+        available_spots = total_spots - occupied_spots  # Calculate available spots
+        
+        # Append the result for this parking lot
+        lot_availability.append({
+            "pl_name": lot.pl_name,
+            "available_spots": available_spots,
+            "occupied_spots": occupied_spots,
+            "total_spots": total_spots
+        })
+    
+    return jsonify(lot_availability)
