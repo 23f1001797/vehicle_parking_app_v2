@@ -64,12 +64,10 @@ export default {
             fetch(`/api/${lot_id}/book`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     this.formData = data
                 })
         },
@@ -83,7 +81,6 @@ export default {
                 body: JSON.stringify({ "vrn": this.formData.vrn })
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     if (data.error) {
                         this.message = data.error
                     } else {

@@ -39,10 +39,10 @@ export default {
         return {
             formData: {
                 pl_name: '',
-                price: 0,
+                price: '',
                 address: '',
                 pincode: '',
-                spots_count: 0
+                spots_count: ''
             },
             message: ''
         }
@@ -56,12 +56,10 @@ export default {
             fetch(`/api/parking_lot/get/${id}`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     this.formData = data
                 })
         },

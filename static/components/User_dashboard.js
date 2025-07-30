@@ -121,12 +121,10 @@ export default {
             fetch(`/api/${user_id}/history`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     if (data.error) {
                         this.message = data.error
                     } else {
@@ -140,8 +138,7 @@ export default {
                 headers: {
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
-            })
-                .then(response => response.json())
+            }).then(response => response.json())
                 .then(data => {
                     if (data.error) {
                         this.message = data.error;
@@ -150,13 +147,14 @@ export default {
                     }
                     this.showResults = true;
                 })
-                .catch(error => {
-                    console.error("Search failed:", error);
-                });
         },
         csv_export() {
-            fetch('/api/export')
-                .then(response => response.json())
+            fetch('/api/export', {
+                method: 'GET',
+                headers: {
+                    "Authentication-Token": localStorage.getItem("auth_token")
+                }
+            }).then(response => response.json())
                 .then(data => {
                     let check_csv = setInterval(() => {
                         fetch(`/api/csv_result/${data.id}`)
@@ -164,7 +162,6 @@ export default {
                                 if (response.ok) {
                                     window.location.href = `/api/csv_result/${data.id}`
                                     clearInterval(check_csv)
-                                    console.log("cleared from inside")
                                 } else { console.log("response not ready") }
                             })
                     }, 2000)

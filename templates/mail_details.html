@@ -39,17 +39,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% set total = 0 %}
                     {% for r in data['reservations'] %}
                     <tr>
                         <td scope="row"> {{loop.index}}</td>
-                        <td>{{r.spot_id.parking_lot.pl_name}}</td>
-                        <td>{{r.spot_id.parking_lot.address}} {{r.spot_id.parking_lot.pincode}}</td>
+                        <td>{{r.spot.lot.pl_name}}</td>
+                        <td>{{r.spot.lot.address}} {{r.spot.lot.pincode}}</td>
                         <td>{{r.vrn}}</td>
                         <td>{{r.parking_timestamp}}</td>
                         <td>{{r.leaving_timestamp}}</td>
                         <td>{{r.parking_cost}}</td>
-                        {% set total = total + t['amount'] %}
                     </tr>
                     {% endfor %}
                     <tr>

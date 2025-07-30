@@ -86,26 +86,25 @@ export default {
             fetch(`/api/reservation/${reserve_id}/get`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
-                    this.formData = data
+                    if (data.error) {
+                        this.message = data.error
+                    } else {
+                        this.formData = data
+                    }
                 })
         },
         release() {
             const reserve_id = this.$route.params.reservation_id
             fetch(`/api/reservation/${reserve_id}/release`, {
-                method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     if (data.error) {
                         this.message = data.error
                     } else {

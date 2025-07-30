@@ -75,18 +75,15 @@ const app = new Vue({
             fetch('/api/user_details', {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log("data", data)
-
                     if (data) {
                         this.userRole = data.role
                         this.userID = data.user_id
                     } else {
-                        console.log("Error in getting user details")
+                        console.log(data.error)
                     }
                 })
         },

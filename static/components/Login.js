@@ -28,13 +28,13 @@ export default {
                     </div>
                 </div>
     `,
-    data() {     //in case of component, data is a function that returns an object
+    data() {
         return {
             formData: {
-                email: '',
-                password: ''
+                email: null,
+                password: null
             },
-            message: ''
+            message: null
         }
     },
     methods: {
@@ -57,7 +57,7 @@ export default {
                         }
                     }
                     else {
-                        this.message = data.message
+                        this.message = data.error
                     }
                 })
         }

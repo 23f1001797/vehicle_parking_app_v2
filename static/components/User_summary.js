@@ -64,18 +64,14 @@ export default {
     methods: {
         async fetchSummaryData() {
             try {
-                console.log('hi')
                 const user_id = this.$route.params.user_id; // Get the user_id from the route parameters
-                console.log(user_id)
                 const response = await fetch(`/api/user/${user_id}/summary/summary_data`, {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Authentication-Token": localStorage.getItem("auth_token")
                     }
                 });
-                console.log('inin')
                 const data = await response.json();
-                console.log("summary:", data);
                 const labels = data.map(item => item.lot_name);
                 const count = data.map(item => item.times_used);
                 this.updateSummaryChart(labels, count);
@@ -123,15 +119,13 @@ export default {
         },
         load_duration_data() {
             const user_id = this.$route.params.user_id
-            console.log('in the function')
             fetch(`/api/user/${user_id}/summary/duration_data`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json"
+                    "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     if (data.error) {
                         this.message = data.error
                     } else {

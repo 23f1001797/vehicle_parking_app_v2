@@ -46,12 +46,10 @@ export default {
             fetch('/api/user/get', {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     this.usersData = data
                 })
         },

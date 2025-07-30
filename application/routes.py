@@ -8,6 +8,8 @@ from .database import db
 from .models import *
 from .utils import *
 from .tasks import csv_report, monthly_report
+from cache import cache
+from .resources import get_user_data
 
 
 @app.route('/', methods=['GET'])
@@ -20,8 +22,8 @@ def user_login():
     email = body['email']
     password = body['password']
     
-    if not email:
-        return jsonify({"error": "Email is required"}), 400
+    if not email or not password:
+        return jsonify({"error": "All fields are required"}), 400
 
     user = app.security.datastore.find_user(email=email)
     if user: 
@@ -32,18 +34,15 @@ def user_login():
                             "user_id": user.id,
                             "auth-token": user.get_auth_token()}), 200
         else:
-            return jsonify({"error": "Invalid password"}), 400
+            return jsonify({"error": "Invalid password"}), 401
 
     else:
         return jsonify({"error": "User not found"}), 404
 
 @app.route('/api/user_details', methods=['GET'])
-@auth_required('token')  # Ensures the user is authenticated
+@auth_required('token')  
 @roles_accepted('admin','user')
-def get_user_details():
-    if not current_user.is_authenticated:
-        return jsonify({"error": "User not authenticated"}), 401
-    
+def get_user_details():    
     roles = [role.name for role in current_user.roles]
     return jsonify({
         "user_id": current_user.id,
@@ -60,7 +59,7 @@ def register_user():
     password = credentials['password']
     confirm_password = credentials['confirm_password']
     if not email or not username or not password or not confirm_password:
-        return jsonify({"error": "please fill all the fields"}), 400
+        return jsonify({"error": "please fill all the fields"}), 401
     
     if password != confirm_password:
         return jsonify({"error": "password do not match"}), 400
@@ -73,12 +72,15 @@ def register_user():
             roles = ['user']
         )
         db.session.commit()
-        return jsonify({"message": "User created successfully"})
+        cache.delete_memoized(get_user_data)
+        return jsonify({"message": "User created successfully"}), 201
     else:
-        return jsonify({"error": "User already exists"}), 400
+        return jsonify({"error": "User already exists"}), 409
 
 
 @app.route('/api/lots/<int:lot_id>/spots', methods=['GET'])
+@auth_required('token')  
+@roles_required('admin')
 def get_spots_by_lot(lot_id):
     spots = ParkingSpot.query.filter_by(lot_id=lot_id).all()
     if spots:
@@ -97,20 +99,24 @@ def get_spots_by_lot(lot_id):
 
 # GET a specific spot in a lot
 @app.route('/api/lots/<int:lot_id>/spots/<int:spot_id>', methods=['GET'])
+@auth_required('token')  
+@roles_required('admin')
 def get_spot_by_id(lot_id, spot_id):
     spot = ParkingSpot.query.filter_by(lot_id=lot_id, id=spot_id).first()
     if spot.status == "available":
-        return jsonify({"spot_id": spot.id, "lot_id": spot.lot_id, "status": spot.status})
+        return jsonify({"spot_id": spot.id, "lot_id": spot.lot_id, "status": spot.status}), 200
     elif spot.status == "occupied":
         reserved_spot = Reservation.query.filter_by(spot_id=spot_id).first()
         if reserved_spot:
-            return jsonify({"spot_id": reserved_spot.spot_id, "user_id": reserved_spot.user_id, "vrn": reserved_spot.vrn, "parking_timestamp": reserved_spot.parking_timestamp, "parking_cost": reserved_spot.parking_cost})
+            return jsonify({"spot_id": reserved_spot.spot_id, "user_id": reserved_spot.user_id, "vrn": reserved_spot.vrn, "parking_timestamp": reserved_spot.parking_timestamp, "parking_cost": reserved_spot.parking_cost}), 200
         else:
             return jsonify({"error": "Spot not found"}), 404
     else:
         return jsonify({"error": "Spot not found"}), 404
 
 @app.route("/api/search")
+@auth_required('token')  
+@roles_required('user')
 def user_search():
     search_query = request.args.get('query', '')
 
@@ -123,20 +129,24 @@ def user_search():
     ).all()
     if results:
         results = [{"lot_id": lot.id, "pl_name": lot.pl_name, "address": lot.address, "pincode": lot.pincode, "price": lot.price, "spots_count": lot.spots_count, "availability": (lot.spots_count - get_reserved_spots_count(lot.id)) } for lot in results]
-        return jsonify(results)
+        return jsonify(results), 200
     else:
         return jsonify({"error": "No results found"}), 404
 
 @app.route('/api/<int:lot_id>/book', methods=['GET'])
+@auth_required('token')  
+@roles_required('user')
 def book_spot( lot_id):
     user_id = current_user.id
     spot = ParkingSpot.query.filter_by(lot_id=lot_id, status="available").first()
     if spot:
-        return jsonify({"spot_id": spot.id, "lot_id": lot_id, "user_id": user_id, "pl_name": spot.lot.pl_name, "address": spot.lot.address})
+        return jsonify({"spot_id": spot.id, "lot_id": lot_id, "user_id": user_id, "pl_name": spot.lot.pl_name, "address": spot.lot.address}), 200
     else:
         return jsonify({"error": "No available spots found in this lot"}), 404
 
 @app.route('/api/reservation/<int:reserve_id>/get', methods=['GET'])
+@auth_required('token')  
+@roles_required('user')
 def get_reservation(reserve_id):
     reservation = Reservation.query.get(reserve_id)
     duration = (datetime.now() - reservation.parking_timestamp).total_seconds() / 3600
@@ -153,22 +163,25 @@ def get_reservation(reserve_id):
              "duration": duration, 
              "status": reservation.status, 
              "pl_name": reservation.spot.lot.pl_name, 
-             "parking_cost": (reservation.spot.lot.price* duration)})
+             "parking_cost": (reservation.spot.lot.price* duration)}), 200
     else:
         return jsonify({"error": "Reservation not found"}), 404
 
 @app.route('/api/<int:user_id>/history', methods=['GET'])
-# @auth_required('token')
+@auth_required('token')  
+@roles_required('user')
 def get_user_history(user_id):
     reservations = Reservation.query.filter(Reservation.user_id==user_id, Reservation.status == "unpaid").all()
     
     if reservations:
         reservations = [{"reservation_id": reservation.id, "lot_id": reservation.spot.lot_id, "spot_id": reservation.spot_id, "vrn": reservation.vrn, "parking_timestamp": reservation.parking_timestamp, "address": reservation.spot.lot.address} for reservation in reservations]
-        return jsonify(reservations)
+        return jsonify(reservations), 200
     else:
         return jsonify({"error": "No reservations found for this user"}), 404
 
-@app.route('/api/reservation/<int:reserve_id>/release', methods=['GET'])
+@app.route('/api/reservation/<int:reserve_id>/release')
+@auth_required('token')  
+@roles_required('user')
 def release_spot(reserve_id):
     reservation = Reservation.query.get(reserve_id)
     if reservation:
@@ -179,11 +192,13 @@ def release_spot(reserve_id):
         reservation.leaving_timestamp = datetime.now()
         reservation.parking_cost = int(reservation.spot.lot.price * duration)
         db.session.commit()
-        return jsonify({"message": "Spot released successfully"})
+        return jsonify({"message": "Spot released successfully"}), 200
     else:
         return jsonify({"error": "Reservation not found"}), 404
 
 @app.route('/api/user/<int:user_id>/summary/summary_data', methods=['GET'])
+@auth_required('token')  
+@roles_required('user')
 def user_spot_usage(user_id):
     data = db.session.query(
         ParkingLot.id.label('lot_id'),
@@ -200,9 +215,11 @@ def user_spot_usage(user_id):
         for lot_id, lot_name, times_used in data
     ]
 
-    return jsonify(result)
+    return jsonify(result), 200
 
 @app.route('/api/user/<int:user_id>/summary/duration_data', methods=['GET'])
+@auth_required('token')  
+@roles_required('user')
 def user_spot_duration(user_id):
     duration_data = Reservation.query.filter_by(user_id = user_id).all()
     if duration_data:
@@ -216,10 +233,12 @@ def user_spot_duration(user_id):
             "address": r.spot.lot.address, 
             "pincode" : r.spot.lot.pincode, 
             "cost": r.parking_cost} for r in duration_data]
-    return jsonify(result)
+    return jsonify(result), 200
 
 
 @app.route('/api/admin/summary/revenue', methods=['GET'])
+@auth_required('token')  
+@roles_required('admin')
 def get_parking_lot_revenue():
     results = db.session.query(
         ParkingLot.id,
@@ -235,21 +254,20 @@ def get_parking_lot_revenue():
         'total_revenue': revenue or 0
     } for lot_id, name, revenue in results]
 
-    return jsonify(response)
+    return jsonify(response), 200
 
 @app.route('/api/admin/summary/availability', methods=['GET'])
+@auth_required('token')  
+@roles_required('admin')
 def get_parking_lot_availability():
-    # Query all parking lots
     parking_lots = ParkingLot.query.all()
     
     lot_availability = []
 
     for lot in parking_lots:
-        total_spots = lot.spots_count  # Total number of spots in this lot
-        occupied_spots = get_reserved_spots_count(lot.id)  # Get the count of occupied spots
-        available_spots = total_spots - occupied_spots  # Calculate available spots
-        
-        # Append the result for this parking lot
+        total_spots = lot.spots_count 
+        occupied_spots = get_reserved_spots_count(lot.id)  
+        available_spots = total_spots - occupied_spots  
         lot_availability.append({
             "pl_name": lot.pl_name,
             "available_spots": available_spots,
@@ -257,10 +275,12 @@ def get_parking_lot_availability():
             "total_spots": total_spots
         })
     
-    return jsonify(lot_availability)
+    return jsonify(lot_availability), 200
 
 
-@app.route('/api/admin/search', methods=['GET', 'POST'])
+@app.route('/api/admin/search', methods=['GET'])
+@auth_required('token')  
+@roles_required('admin')
 def admin_search():
         search_query = request.args.get('query', '')
         table = request.args.get('table', '')
@@ -280,7 +300,7 @@ def admin_search():
                     "username": user.username, 
                     "email": user.email, 
                     "active": user.active} for user in results]
-                return jsonify(results)
+                return jsonify(results), 200
             else:
                 return jsonify({"error": "No results found"}), 404
         elif table == "parkingLot":
@@ -302,7 +322,7 @@ def admin_search():
                     "price": lot.price, 
                     "spots_count": lot.spots_count,
                     "capacity": lot.capacity} for lot in results]
-                return jsonify(results)
+                return jsonify(results), 200
             else:
                 return jsonify({"error": "No results found"}), 404
         elif table == "parkingSpot":
@@ -318,7 +338,7 @@ def admin_search():
                     "spot_id": spot.id, 
                     "lot_id": spot.lot_id, 
                     "status": spot.status} for spot in results]
-                return jsonify(results)
+                return jsonify(results), 200
             else:
                 return jsonify({"error": "No results found"}), 404
         elif table == "reserveParkingSpot":
@@ -342,29 +362,29 @@ def admin_search():
                     "price": reservation.spot.lot.price,
                     "parking_cost": reservation.parking_cost,
                     "status": reservation.status} for reservation in results]
-                print(results)
-                return jsonify(results)
+                return jsonify(results), 200
             else:
                 return jsonify({"error": "No results found"}), 404
         else:
-            return jsonify({"message": "incorrect table chosen"}), 500
+            return jsonify({"error": "something wrong!"}), 400
 
-@app.route("/api/export/") # this manually triggers the job
+@app.route("/api/export/")
+@auth_required('token')  
+@roles_accepted('admin','user')
 def export_csv():
     user = current_user
     roles = roles_list(user.roles)
-    print(roles, user.roles, user)
     if "admin" in roles:
         user_id = None
     elif "user" in roles:
         user_id = user.id      
-    result = csv_report.delay(user_id=user_id) # async object
+    result = csv_report.delay(user_id=user_id)
     return jsonify({
         "id" : result.id,
         "result" : result.result,
-        })
+        }), 200
 
-@app.route('/api/csv_result/<id>') # created to test the results
+@app.route('/api/csv_result/<id>')
 def csv_result(id):
     result = AsyncResult(id)
-    return send_from_directory('static/csv_folder', result.result, as_attachment=True)
+    return send_from_directory('static/csv_folder', result.result, as_attachment=True), 200

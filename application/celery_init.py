@@ -1,5 +1,4 @@
 from celery import Celery, Task
-# from .config import celery_config
 
 def celery_init_app(app):
     class FlaskTask(Task):

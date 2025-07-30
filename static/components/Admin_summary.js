@@ -69,12 +69,10 @@ export default {
                 const response = await fetch('/api/admin/summary/revenue', {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Authentication-Token": localStorage.getItem("auth_token")
                     }
-                }
-                );
+                });
                 const data = await response.json();
-                console.log("revenueeeeee", data[0]);
                 this.revenue = data
                 const labels = data.map(item => item.parking_lot_name);
                 const revenues = data.map(item => item.total_revenue);
@@ -126,14 +124,11 @@ export default {
                 const response = await fetch('/api/admin/summary/availability', {
                     method: 'GET',
                     headers: {
-                        'Content-Type': 'application/json',
+                        "Authentication-Token": localStorage.getItem("auth_token")
                     }
-                }
-                );
+                });
                 const data = await response.json();
-                console.log("avail", data);
                 const labels = data.map(item => item.pl_name);
-                console.log(labels)
                 const availableSpots = data.map(item => item.available_spots);
                 const occupiedSpots = data.map(item => item.occupied_spots);
                 this.updateAvailabilityChart(labels, availableSpots, occupiedSpots);

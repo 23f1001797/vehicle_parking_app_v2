@@ -4,26 +4,22 @@ from .utils import format_report, get_monthly_report_data, admin_created_new_lot
 import datetime
 import csv
 from .mail import send_email
-import requests # plural
+import requests
 
 
 @shared_task(ignore_result=False, name = "download_csv_report")
 def csv_report(user_id=None):
     if user_id:
+        csv_file_name = f'reservations_userfile_{user_id}_{datetime.datetime.now().strftime("%f")}.csv'
         reservations = Reservation.query.filter(Reservation.user_id == user_id).all()
     else:
+        csv_file_name = f'reservations_{datetime.datetime.now().strftime("%f")}.csv' 
         reservations = Reservation.query.all()
         
-    if reservations:
-        if user_id:
-            csv_file_name = f'reservations_userfile_{user_id}_{datetime.datetime.now().strftime("%f")}.csv'
-        else:
-            csv_file_name = f'reservations_{datetime.datetime.now().strftime("%f")}.csv'   # "transactions_123456.csv"
-    
-        with open(f'static/csv_folder/{csv_file_name}', "w", newline = "") as csv_file:
+    with open(f'static/csv_folder/{csv_file_name}', "w", newline = "") as csv_file:
+        trans_csv = csv.writer(csv_file, delimiter=",")
+        if reservations: 
             sr_no = 1
-            trans_csv = csv.writer(csv_file, delimiter=",")
-            # print("trans_csv")
             if user_id:
                 trans_csv.writerow(["Sr No.", "Spot ID", "Lot Name", "VRN", "Start Time", "End Time", "Cost"])
                 for r in reservations:
@@ -36,8 +32,9 @@ def csv_report(user_id=None):
                     this_trans = [sr_no, r.spot_id, r.spot.lot.pl_name, r.bearer.username, r.vrn, r.parking_timestamp, r.leaving_timestamp, r.parking_cost]
                     trans_csv.writerow(this_trans)
                     sr_no += 1
-        return csv_file_name
-    return "No reservations found!"
+        else:
+            trans_csv.writerow(["No reservations found"])
+    return csv_file_name
 
 
 
@@ -56,7 +53,6 @@ def monthly_report():
         user_data['total_cost'] = data['total_cost']
         user_data['most_used_lot'] = data['most_used_lot']
         user_data['reservations'] = data['reservations']
-
 
         message = format_report("templates/mail_details.html", user_data)
         send_email(user.email, "Monthly Report", message)
@@ -80,15 +76,14 @@ def daily_reminder():
             message = lot_message
             response = requests.post("https://chat.googleapis.com/v1/spaces/AAQAPXoTT4U/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=X_yas9DjSGS4jUKadPfSMvX_OkwZi6MAd4N8P1-2Q4c", headers = {"Content-Type": "application/json"}, 
                             json={"text": message})
-            print(response.status_code)
 
     for user in users[1:]:
         if not has_visited(user.id):
             message = f"Hey {user.username}! You have not booked any parking spot yet to it before it's too late!"
             
             response = requests.post("https://chat.googleapis.com/v1/spaces/AAQAPXoTT4U/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=X_yas9DjSGS4jUKadPfSMvX_OkwZi6MAd4N8P1-2Q4c", headers = {"Content-Type": "application/json"}, 
-                            json={"text": message}) # key can be anything we want, but in this google chats expected field is "text" that's why we are using "text" as key in json
-            print(response.status_code)
+                            json={"text": message}) 
     return "daily reminder sent successfully!"
+
 
 

@@ -70,19 +70,16 @@ export default {
             fetch(`/api/lots/${lot_id}/spots/${spot_id}`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log("Spot Details:")
-                    console.log(data)
-                    if (data.status) {
-                        this.spotData = data
+                    if (data.error) {
+                        this.message = data.error
                     } else if (data.vrn) {
                         this.formData = data
                     } else {
-                        this.message = data.message
+                        this.spotData = data
                     }
                 })
 
@@ -92,12 +89,10 @@ export default {
             fetch(`/api/parking_spot/delete/${spot_id}`, {
                 method: 'DELETE',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log("deleted spot")
                     // this.$router.push({name: 'view_parking_lot_page', params: {id: this.$route.params.lot_id}})
                     this.$router.go(-1);
                 })

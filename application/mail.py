@@ -5,8 +5,8 @@ from email.mime.base import MIMEBase
 from email import encoders
 from jinja2 import Template
 
-SMTP_SERVER_HOST = "localhost" # for real email "smtp.gmail.com"
-SMTP_SERVER_PORT = 1025 # for real email 587
+SMTP_SERVER_HOST = "localhost" 
+SMTP_SERVER_PORT = 1025 
 SENDER_ADDRESS = "parc@donotreply.in"
 SENDER_PASSWORD = ""
 

@@ -164,14 +164,13 @@ export default {
             fetch(`/api/admin/search?table=${this.table}&query=${this.search_query}`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
+                    "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
                     if (data.error) {
                         this.message = data.error
                     } else {
-                        console.log(data)
                         if (this.table === 'users') {
                             this.users = data
                         } else if (this.table === 'parkingLot') {

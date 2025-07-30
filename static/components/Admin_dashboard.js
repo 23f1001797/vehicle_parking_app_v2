@@ -39,7 +39,7 @@ export default {
         </div>`,
     data() {
         return {
-            parkinglots: null,
+            parkinglots: '',
             message: ''
         }
     },
@@ -51,22 +51,24 @@ export default {
             fetch('/api/parking_lot/get', {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
-                    if (data.message) {
-                        this.message = data.message
+                    if (data.error) {
+                        this.message = data.error
                     } else {
                         this.parkinglots = data
                     }
                 })
         },
         csv_export() {
-            fetch('/api/export')
-                .then(response => response.json())
+            fetch('/api/export', {
+                method: 'GET',
+                headers: {
+                    "Authentication-Token": localStorage.getItem("auth_token")
+                }
+            }).then(response => response.json())
                 .then(data => {
                     let check_csv = setInterval(() => {
                         fetch(`/api/csv_result/${data.id}`)
@@ -74,7 +76,6 @@ export default {
                                 if (response.ok) {
                                     window.location.href = `/api/csv_result/${data.id}`
                                     clearInterval(check_csv)
-                                    console.log("cleared from inside")
                                 } else { console.log("response not ready") }
                             })
                     }, 2000)

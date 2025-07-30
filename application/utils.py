@@ -36,8 +36,8 @@ def format_report(html_template, data):
 
 def get_monthly_report_data(user_id):
     now = datetime.now()
-    first_day = datetime(now.year, now.month - 1, 1)
-    last_day = datetime(now.year, now.month, 1)
+    first_day = (now.replace(day=1) - relativedelta(months=1))
+    last_day = now.replace(day=1)
 
     reservations = (
         Reservation.query
@@ -54,7 +54,7 @@ def get_monthly_report_data(user_id):
 
     lot_usage = {}
     for r in reservations:
-        lot_name = r.spot.parking_lot.pl_name
+        lot_name = r.spot.lot.pl_name
         lot_usage[lot_name] = lot_usage.get(lot_name, 0) + 1
 
     most_used_lot = max(lot_usage.items(), key=lambda x: x[1])[0] if lot_usage else "N/A"
@@ -68,8 +68,8 @@ def get_monthly_report_data(user_id):
 
 def has_visited(user_id):
     today = date.today()
-    start_time = datetime.combine(today, time(0, 0))      # 12:00 AM today
-    end_time = datetime.combine(today, time(20, 0))       # 8:00 PM today
+    start_time = datetime.combine(today, time(0, 0))    
+    end_time = datetime.combine(today, time(20, 0))     
 
     return Reservation.query.filter(
         Reservation.user_id == user_id,
@@ -79,8 +79,8 @@ def has_visited(user_id):
 
 def admin_created_new_lots():
     now = datetime.now()
-    end_time = datetime.combine(now.date(), time(20, 0))  # today at 8:00 PM
-    start_time = end_time - timedelta(days=1)             # yesterday at 8:00 PM
+    end_time = datetime.combine(now.date(), time(20, 0)) 
+    start_time = end_time - timedelta(days=1)           
 
     return ParkingLot.query.filter(
         ParkingLot.created_at >= start_time,

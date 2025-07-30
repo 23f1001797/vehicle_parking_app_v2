@@ -47,7 +47,8 @@ export default {
                 username: '',
                 password: '',
                 confirm_password: ''
-            }
+            },
+            message: ''
         }
     },
     methods: {
@@ -62,6 +63,8 @@ export default {
                 .then(data => {
                     if (data['message'] === 'User created successfully') {
                         this.$router.push("/login")
+                    } else {
+                        this.message = data.error
                     }
                 })
         }

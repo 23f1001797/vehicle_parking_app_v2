@@ -8,21 +8,21 @@ export default {
                             <form @submit.prevent="save_changes">
                                 <div class="mb-3">
                                     <label for="username" class="form-label">Name</label>
-                                    <input type="text" class="form-control" id="username" v-model="username"
+                                    <input type="text" class="form-control" id="username" v-model="formData.username"
                                         required>
                                 </div>
                                 <div class="mb-3">
                                     <label for="email" class="form-label">Email</label>
-                                    <input type="email" class="form-control" id="email" v-model="email" required>
+                                    <input type="email" class="form-control" id="email" v-model="formData.email" required>
                                 </div>
                                 <div class="d-flex mb-3">
                                     <div class="me-2">
                                         <label for="password" class="form-label">Password</label>
-                                        <input type="password" class="form-control" id="password" v-model="password" >
+                                        <input type="password" class="form-control" id="password" v-model="formData.password" >
                                     </div>
                                     <div>
                                         <label for="confirm_password" class="form-label">Confirm Password</label>
-                                        <input type="password" class="form-control" id="confirm_password" v-model="confirm_password" >
+                                        <input type="password" class="form-control" id="confirm_password" v-model="formData.confirm_password" >
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-between">
@@ -36,10 +36,13 @@ export default {
     `,
     data() {
         return {
-            username: null,
-            email: null,
-            password: null,
-            confirm_password: null
+            formData: {
+                username: null,
+                email: null,
+                password: null,
+                confirm_password: null
+            },
+            message: ''
         };
     },
     mounted() {
@@ -51,17 +54,14 @@ export default {
             fetch(`/api/user/get/${user_id}`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log("profile", data)
-                    if (data.message) {
-                        this.message = data.message;
+                    if (data.error) {
+                        this.message = data.error;
                     } else {
-                        this.username = data.username;
-                        this.email = data.email;
+                        this.formData = data
                     }
                 });
         },
@@ -73,10 +73,9 @@ export default {
                     "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 },
-                body: JSON.stringify({ "username": this.username, "email": this.email, "password": this.password, "confirm_password": this.confirm_password })
+                body: JSON.stringify(this.formData)
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
                     if (data.error) {
                         this.message = data.error
                     } else {

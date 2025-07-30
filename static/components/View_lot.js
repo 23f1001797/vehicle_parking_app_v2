@@ -36,12 +36,12 @@ export default {
                 `,
     data() {
         return {
-            parkinglot: null,
-            spots: null,
+            parkinglot: '',
+            spots: '',
             status_bg: "rgb(255, 167, 167)",
             message: '',
-            available_spots: "",
-            occupied_spots: "",
+            available_spots: '',
+            occupied_spots: '',
         }
     },
     mounted() {
@@ -54,13 +54,15 @@ export default {
             fetch(`/api/parking_lot/get/${id}`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
-                    this.parkinglot = data
+                    if (data.error) {
+                        this.message = data.error
+                    } else {
+                        this.parkinglot = data
+                    }
                 })
         },
         loadSpots() {
@@ -68,15 +70,17 @@ export default {
             fetch(`/api/lots/${lot_id}/spots`, {
                 method: 'GET',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
                 .then(data => {
-                    console.log(data)
-                    this.spots = data[0]
-                    this.available_spots = data[2]
-                    this.occupied_spots = data[1]
+                    if (data.error) {
+                        this.message = data.error
+                    } else {
+                        this.spots = data[0]
+                        this.available_spots = data[2]
+                        this.occupied_spots = data[1]
+                    }
                 })
         },
         delete_lot() {
@@ -84,7 +88,6 @@ export default {
             fetch(`/api/parking_lot/delete/${lot_id}`, {
                 method: 'DELETE',
                 headers: {
-                    "Content-Type": "application/json",
                     "Authentication-Token": localStorage.getItem("auth_token")
                 }
             }).then(response => response.json())
@@ -113,7 +116,11 @@ export default {
                 }
             }).then(response => response.json())
                 .then(data => {
-                    this.message = data.message
+                    if (data.error) {
+                        this.message = data.error
+                    } else {
+                        this.message = data.message
+                    }
                     this.$router.go(0);
                 })
 
