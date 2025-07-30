@@ -15,3 +15,10 @@ class LocalDevelopmentConfig(Config):
     SECURITY_PASSWORD_SALT = os.getenv('SECURITY_PASSWORD_SALT')
     SECURITY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
     WTF_CSRF_ENABLED = False
+
+
+class cacheConfig():
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_URL = "redis://localhost:6379/2"
+    CACHE_DEFAULT_TIMEOUT = 500 
+    CACHE_KEY_PREFIX = "mycache"

@@ -2,17 +2,21 @@ from flask import Flask
 from flask_security import SQLAlchemyUserDatastore, Security, hash_password
 from celery.schedules import crontab
 
-from application.config import LocalDevelopmentConfig
+from application.tasks import daily_reminder, monthly_report
+
+from application.config import LocalDevelopmentConfig, cacheConfig
 from application.database import db
 from application.models import User, Role
 from application.resources import api
 from application.celery_init import celery_init_app
-from application.tasks import daily_reminder
+from cache import cache
 
 def create_app():
     app = Flask(__name__)
     app.config.from_object(LocalDevelopmentConfig)
+    app.config.from_object(cacheConfig)
 
+    cache.init_app(app)
     db.init_app(app)
     api.init_app(app)
 
@@ -25,7 +29,6 @@ def create_app():
 app = create_app()
 
 celery = celery_init_app(app)
-celery.autodiscover_tasks()
 
 with app.app_context():
     db.create_all()
@@ -49,12 +52,12 @@ from application.routes import *
 @celery.on_after_finalize.connect
 def setup_periodic_tasks(sender, **kwargs):
     sender.add_periodic_task(
-        crontab(minute = '*/2'),
+        crontab(crontab(minute=0, hour=10, day_of_month='1')), #crontab(minute = '*/2')
         monthly_report.s(),
     )
     
     sender.add_periodic_task(
-        crontab(minute = '*/1'),
+        crontab(minute=0, hour=20),
         daily_reminder.s(),
     )
 

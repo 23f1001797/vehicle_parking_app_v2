@@ -4,6 +4,7 @@ import datetime
 
 from .models import *
 from .utils import roles_list, get_reserved_spots_count
+from cache import cache
 
 api = Api()
 
@@ -16,6 +17,7 @@ class ParkingLotApi(Resource):
         self.lot_args.add_argument('pincode')
         self.lot_args.add_argument('capacity')
 
+    @cache.cached(timeout=300, key_prefix='parking_lot_data')
     @auth_required('token')
     @roles_accepted('admin', 'user')
     def get(self, lot_id=None):

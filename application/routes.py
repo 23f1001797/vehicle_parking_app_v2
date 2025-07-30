@@ -353,6 +353,7 @@ def admin_search():
 def export_csv():
     user = current_user
     roles = roles_list(user.roles)
+    print(roles, user.roles, user)
     if "admin" in roles:
         user_id = None
     elif "user" in roles:
