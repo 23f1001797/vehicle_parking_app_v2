@@ -4,6 +4,7 @@ import Home from './components/Home.js'
 import Login from './components/Login.js'
 import Register from './components/Register.js'
 import Admin_dashboard from './components/Admin_dashboard.js'
+import Profile from './components/Profile.js'
 import Admin_users from './components/Admin_users.js'
 import Admin_summary from './components/Admin_summary.js'
 import Admin_search from './components/Admin_search.js'
@@ -24,12 +25,14 @@ const routes = [
     { path: '/admin/users', name: 'admin_users_page', component: Admin_users },
     { path: '/admin/search', name: 'admin_search_page', component: Admin_search },
     { path: '/admin/summary', name: 'admin_summary_page', component: Admin_summary },
+    { path: '/admin/:user_id/profile', name: 'admin_profile', component: Profile },
     { path: '/admin/parking_lot/create', name: 'create_parking_lot_page', component: Create_lot },
     { path: '/admin/parking_lot/:id', name: 'view_parking_lot_page', component: View_lot },
     { path: '/admin/parking_lot/:id/edit', name: 'edit_parking_lot_page', component: Edit_lot },
     { path: '/admin/parking_lot/:lot_id/spots/:spot_id', name: 'view_spot_page', component: View_spot },
     { path: '/user/:user_id/dashboard', name: 'user_dashboard_page', component: User_dashboard },
     { path: '/user/:user_id/summary', name: 'user_summary_page', component: User_summary },
+    { path: '/user/:user_id/profile', name: 'user_profile', component: Profile },
     { path: '/user/:user_id/book/:lot_id', name: 'book_spot_page', component: Book_spot },
     { path: '/user/:user_id/release/:reservation_id', name: 'release_spot_page', component: Release_spot },
 ]
@@ -62,10 +65,10 @@ const app = new Vue({
     mounted() {
         if (localStorage.getItem('auth_token')) {
             this.loggedIn = true
+            this.getDetails()
         } else {
             this.loggedIn = false
         }
-        this.getDetails()
     },
     methods: {
         getDetails() {

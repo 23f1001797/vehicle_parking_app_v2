@@ -26,7 +26,10 @@ export default {
                         </div>
                         <div class="d-flex justify-content-between">
                             <router-link :to="{name: 'edit_parking_lot_page', params: {id : parkinglot.id}}" class="btn btn-info mx-2">Edit Lot</router-link>
+                            <div>
                             <button class="btn btn-primary" @click="delete_lot">Delete Lot</button>
+                            <button class="btn btn-outline-secondary" @click="$router.go(-1)">Cancel</button>
+                            </div>
                         </div>
                     </div>
                 </div>                   
@@ -86,8 +89,14 @@ export default {
                 }
             }).then(response => response.json())
                 .then(data => {
-                    this.message = data.message
-                    this.$router.push("/admin/dashboard")
+                    if (data.error) {
+                        this.message = data.error
+                    } else {
+                        this.message = data.message
+                        // this.$router.push("/admin/dashboard")
+                        this.$router.go(-1);
+                    }
+
                 })
         },
         get_spot_details(s_id) {
@@ -105,8 +114,7 @@ export default {
             }).then(response => response.json())
                 .then(data => {
                     this.message = data.message
-                    this.loadParkingLot()
-                    this.loadSpots()
+                    this.$router.go(0);
                 })
 
         }

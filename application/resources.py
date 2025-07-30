@@ -1,5 +1,5 @@
 from flask_restful import Resource, Api, reqparse, fields, marshal 
-from flask_security import auth_required, current_user, roles_required, roles_accepted
+from flask_security import auth_required, current_user, roles_required, roles_accepted, hash_password
 import datetime
 
 from .models import *
@@ -8,54 +8,66 @@ from cache import cache
 
 api = Api()
 
+parking_lot_fields = {
+    'id': fields.Integer,
+    'pl_name': fields.String,
+    'price': fields.Integer,
+    'address': fields.String,
+    'pincode': fields.Integer,
+    'capacity': fields.Integer,
+    'spots_count': fields.Integer,
+    'created_at': fields.DateTime
+}
+
+# parking_spot_fields = {
+#     'id': fields.Integer,
+#     'lot_id': fields.Integer,
+#     'status': fields.String
+# }
+
+# reservation_fields = {
+#     'id': fields.Integer,
+#     'spot_id': fields.Integer,
+#     'lot_id': fields.Integer,
+#     'vrn': fields.String,
+#     'parking_timestamp': fields.DateTime,
+#     'leaving_timestamp': fields.DateTime,
+#     'duration': fields.Integer,
+#     'status': fields.String,
+#     'parking_cost': fields.Integer
+# }
+
+user_fields = {
+    'id': fields.Integer,
+    'username': fields.String,
+    'email': fields.String,
+    'active': fields.String
+}
+
 class ParkingLotApi(Resource):
     def __init__(self):
         self.lot_args = reqparse.RequestParser() 
         self.lot_args.add_argument('pl_name')
-        self.lot_args.add_argument('price')
+        self.lot_args.add_argument('price', type=int)
         self.lot_args.add_argument('address')
-        self.lot_args.add_argument('pincode')
-        self.lot_args.add_argument('capacity')
+        self.lot_args.add_argument('pincode', type=int)
+        self.lot_args.add_argument('capacity', type=int)
 
-    @cache.cached(timeout=300, key_prefix='parking_lot_data')
+    # @cache.cached(timeout=300, key_prefix='parking_lot_data')
     @auth_required('token')
     @roles_accepted('admin', 'user')
     def get(self, lot_id=None):
-        # print("hello from get parking lot")
         if lot_id:
             parking_lot = ParkingLot.query.get(lot_id)
             if parking_lot:
-                lot_json = {}
-                lot_json['id'] = parking_lot.id
-                lot_json['pl_name'] = parking_lot.pl_name
-                lot_json['price'] = parking_lot.price
-                lot_json['address'] = parking_lot.address
-                lot_json['pincode'] = parking_lot.pincode
-                lot_json['capacity'] = parking_lot.capacity
-                lot_json['spots_count'] = parking_lot.spots_count
-                lot_json['created_at'] = parking_lot.created_at.isoformat()
-                return lot_json
+                return marshal(parking_lot, parking_lot_fields)
 
             return {
                 "message": "Parking lot not found"
             }, 404
         parking_lots = ParkingLot.query.all()
-        lot_json = []
-        for lot in parking_lots:
-            this_lot = {}
-            this_lot['id'] = lot.id
-            this_lot['pl_name'] = lot.pl_name
-            this_lot['price'] = lot.price
-            this_lot['address'] = lot.address
-            this_lot['pincode'] = lot.pincode
-            this_lot['created_at'] = lot.created_at.isoformat()
-            this_lot['capacity'] = lot.capacity
-            this_lot['spots_count'] = lot.spots_count
-            lot_json.append(this_lot)
-
-        if lot_json:
-            return lot_json
-        
+        if parking_lots:
+            return marshal(parking_lots, parking_lot_fields)
         return {
             "message": "No parking lots found"
         }, 404
@@ -87,7 +99,7 @@ class ParkingLotApi(Resource):
             }
         except:
             return {
-                "message": "Error creating parking lot"
+                "error": "Error creating parking lot"
             }, 400
 
     @auth_required('token')
@@ -113,7 +125,7 @@ class ParkingLotApi(Resource):
             occupied_spots = get_reserved_spots_count(lot_id)
             if occupied_spots > 0:
                 return {
-                    "message": "Cannot delete the parking lot with occupied spots"
+                    "error": "Cannot delete the parking lot with occupied spots"
                 }, 400
             db.session.delete(parking_lot)
             db.session.commit()  
@@ -127,36 +139,25 @@ class ParkingLotApi(Resource):
 
 
 class ParkingSpotApi(Resource):
-    def __init__(self):
-        self.parking_spot = reqparse.RequestParser()
-        self.parking_spot.add_argument('status')
+    # def __init__(self):
+    #     self.parking_spot = reqparse.RequestParser()
+    #     self.parking_spot.add_argument('status')
     
-    def get(self, spot_id=None):
-        if spot_id:
-            parking_spot = ParkingSpot.query.get(spot_id)
-            if parking_spot:
-                spot_json = {}
-                spot_json['id'] = parking_spot.id
-                spot_json['status'] = parking_spot.status
-                return spot_json
-
-            return {
-                "message": "Parking spot not found"
-            }, 404
-        parking_spots = ParkingSpot.query.all()
-        spot_json = []
-        for spot in parking_spots:
-            this_spot = {}
-            this_spot['id'] = spot.id
-            this_spot['status'] = spot.status
-            spot_json.append(this_spot)
-
-        if spot_json:
-            return spot_json
+    # def get(self, spot_id=None):
+    #     if spot_id:
+    #         parking_spot = ParkingSpot.query.get(spot_id)
+    #         if parking_spot:
+    #             return marshal(parking_spot, parking_spot_fields)
+    #         return {
+    #             "message": "Parking spot not found"
+    #         }, 404
+    #     parking_spots = ParkingSpot.query.all()
+    #     if parking_spots:
+    #         return marshal(parking_spots, parking_spot_fields)
         
-        return {
-            "message": "No parking spots found"
-        }, 404
+    #     return {
+    #         "message": "No parking spots found"
+    #     }, 404
 
     def post(self, lot_id):
         parking_lot = ParkingLot.query.get(lot_id)
@@ -174,14 +175,14 @@ class ParkingSpotApi(Resource):
             }, 400
 
 
-    def put(self, spot_id):
-        args = self.parking_spot.parse_args()
-        parking_spot = ParkingSpot.query.get(spot_id)
-        parking_spot.status = args['status']
-        db.session.commit()
-        return {
-            "message": "Parking spot updated successfully"
-        }
+    # def put(self, spot_id):
+    #     args = self.parking_spot.parse_args()
+    #     parking_spot = ParkingSpot.query.get(spot_id)
+    #     parking_spot.status = args['status']
+    #     db.session.commit()
+    #     return {
+    #         "message": "Parking spot updated successfully"
+    #     }
 
     def delete(self, spot_id):
         parking_spot = ParkingSpot.query.get(spot_id)
@@ -202,42 +203,27 @@ class ReserveSpotApi(Resource):
     def __init__(self):
         self.reserve_slot = reqparse.RequestParser()
 
-        self.reserve_slot.add_argument('spot_id')
-        self.reserve_slot.add_argument('user_id')
+        self.reserve_slot.add_argument('spot_id',type=int)
+        self.reserve_slot.add_argument('user_id', type=int)
         self.reserve_slot.add_argument('vrn')
         self.reserve_slot.add_argument('parking_timestamp')
         self.reserve_slot.add_argument('leaving_timestamp')
         self.reserve_slot.add_argument('status')
-        self.reserve_slot.add_argument('parking_cost')
+        self.reserve_slot.add_argument('parking_cost', type=int)
     
-    @auth_required('token')
-    @roles_accepted('user', 'admin')
-    def get(self):
-        reserved_spots = []
-        reserve_json = []
-        if "admin" in roles_list(current_user.roles):
-            reserved_spots = Reservation.query.all()
-        else:
-            reserved_spots = current_user.spots
+    # @auth_required('token')
+    # @roles_accepted('user', 'admin')
+    # def get(self):
+    #     if "admin" in roles_list(current_user.roles):
+    #         reserved_spots = Reservation.query.all()
+    #     else:
+    #         reserved_spots = current_user.spots
 
-        for reserved_spot in reserved_spots:
-            this_reservation = {}
-            this_reservation['id'] = reserved_spot.id
-            this_reservation['spot_id'] = reserved_spot.spot_id
-            this_reservation['lot_id'] = reserved_spot.spot.lot_id
-            this_reservation['user_id'] = reserved_spot.user_id
-            this_reservation['parking_timestamp'] = reserved_spot.parking_timestamp.isoformat()
-            this_reservation['leaving_timestamp'] = reserved_spot.leaving_timestamp.isoformat()
-            this_reservation['status'] = reserved_spot.status
-            this_reservation['parking_cost'] = reserved_spot.parking_cost
-            reserve_json.append(this_reservation)
-
-        if reserve_json:
-            return reserve_json
-        
-        return {
-            "message": "No reservations found"
-        }, 404
+    #     if reserved_spots:
+    #         return marshal(reserved_spots, reservation_fields)
+    #     return {
+    #         "message": "No reservations found"
+    #     }, 404
 
     def post(self, user_id, spot_id):
         args = self.reserve_slot.parse_args()
@@ -261,57 +247,52 @@ class ReserveSpotApi(Resource):
         #         "message": "Error creating reservation"
         #     }, 400
     
-    @auth_required('token')
-    @roles_accepted('admin')    
-    def put(self, reserve_id):
-        args = self.reserve_slot.parse_args()
-        reservation = Reservation.query.get(reserve_id)
-        reservation.spot_id = args['spot_id']
-        reservation.user_id = args['user_id']
-        reservation.parking_timestamp = args['parking_timestamp']
-        reservation.leaving_timestamp = args['leaving_timestamp']
-        reservation.status = args['status']
-        reservation.parking_cost = args['parking_cost']
-        db.session.commit()
-        return {
-            "message": "Reservation updated successfully"
-        }
+    # @auth_required('token')
+    # @roles_accepted('admin')    
+    # def put(self, reserve_id):
+    #     args = self.reserve_slot.parse_args()
+    #     reservation = Reservation.query.get(reserve_id)
+    #     reservation.leaving_timestamp = args['leaving_timestamp']
+    #     reservation.status = args['status']
+    #     reservation.parking_cost = args['parking_cost']
+    #     db.session.commit()
+    #     return {
+    #         "message": "Reservation updated successfully"
+    #     }
 
-    @auth_required('token')
-    @roles_accepted('user')
-    def delete(self, reserve_id):
-        reservation = Reservation.query.get(reserve_id)
-        if reservation:
-            db.session.delete(reservation)
-            db.session.commit()
-            return {
-                "message": "Reservation deleted successfully"
-            }
-        else:
-            return {
-                "message": "Reservation not found"
-            }, 404
+    # @auth_required('token')
+    # @roles_accepted('user')
+    # def delete(self, reserve_id):
+    #     reservation = Reservation.query.get(reserve_id)
+    #     if reservation:
+    #         db.session.delete(reservation)
+    #         db.session.commit()
+    #         return {
+    #             "message": "Reservation deleted successfully"
+    #         }
+    #     else:
+    #         return {
+    #             "message": "Reservation not found"
+    #         }, 404
 
 class UserApi(Resource):
     def __init__(self):
         self.user = reqparse.RequestParser()
         self.user.add_argument('username')
+        self.user.add_argument('email')
+        self.user.add_argument('password')
+        self.user.add_argument('confirm_password')
 
-    def get(self):
-        users = User.query.all()
-        user_json = []
-        for user in users[1:]:
-            this_user = {}
-            this_user['id'] = user.id
-            this_user['email'] = user.email
-            this_user['username'] = user.username
-            this_user['active'] = user.active
-            this_user['roles'] = roles_list(user.roles)
-            user_json.append(this_user)
-        
-        if user_json:
-            return user_json
-        
+    def get(self, user_id=None):
+        if user_id:
+            user = User.query.get(user_id)
+            if user:
+                return marshal(user, user_fields)
+            return {"message": "user not found"}
+
+        users = User.query.all()        
+        if users:
+            return marshal(users, user_fields)
         return {
             "message": "No users found "
         }, 404
@@ -319,39 +300,56 @@ class UserApi(Resource):
     def put(self, user_id):
         args = self.user.parse_args()
         user = User.query.get(user_id)
-        user.username = args['username']
+        username = args['username']
+        email = args['email']
+        password = args['password']
+        confirm_password = args['confirm_password']
+        print(username, email, password, confirm_password)
+        if not username or not email:
+            return { "error": "username or email cannot be empty"}
+        
+        if not password and not confirm_password:
+            user.username = username
+            user.email = email
+            db.session.commit()
+            return { "message": "profile updated successfully"}
+        
+        if not password or not confirm_password:
+            return { "error": "please fill both password fields"}
+        
+        if username and email and password and confirm_password:
+            if password != confirm_password:
+                return { "error": "passwords do not match"}
+
+            user.password = hash_password(password)
+            user.email = email
+            user.username = username
         db.session.commit()
         return {
             "message": "User updated successfully"
         }
 
-    def delete(self, user_id):
-        user = User.query.get(user_id)
-        if user:
-            db.session.delete(user)
-            db.session.commit()
-            return {
-                "message": "User deleted successfully"
-            }
-        else:
-            return {
-                "message": "User not found"
-            }, 404
+    # def delete(self, user_id):
+    #     user = User.query.get(user_id)
+    #     if user:
+    #         db.session.delete(user)
+    #         db.session.commit()
+    #         return {
+    #             "message": "User deleted successfully"
+    #         }
+    #     else:
+    #         return {
+    #             "message": "User not found"
+    #         }, 404
         
-api.add_resource(ReserveSpotApi, '/api/reserve_slot/get',
-                                 '/api/reserve_slot/<int:user_id>/create/<int:spot_id>',
-                                 '/api/reserve_slot/update/<int:reserve_id>',
-                                 '/api/reserve_slot/delete/<int:reserve_id>')
 api.add_resource(ParkingLotApi,  '/api/parking_lot/get',
                                  '/api/parking_lot/get/<int:lot_id>',
                                  '/api/parking_lot/create',
                                  '/api/parking_lot/update/<int:lot_id>',
                                  '/api/parking_lot/delete/<int:lot_id>')
-api.add_resource(ParkingSpotApi, '/api/parking_spot/get/<int:spot_id>',
-                                 '/api/parking_spot/get',
-                                 '/api/parking_spot/create/<int:lot_id>',
-                                 '/api/parking_spot/update/<int:spot_id>',
+api.add_resource(ParkingSpotApi, '/api/parking_spot/create/<int:lot_id>',
                                  '/api/parking_spot/delete/<int:spot_id>')
-api.add_resource(UserApi, '/api/user/get',
-                                 '/api/user/update/<int:user_id>',
-                                 '/api/user/delete/<int:user_id>')
+api.add_resource(UserApi,        '/api/user/get',
+                                 '/api/user/get/<int:user_id>',
+                                 '/api/user/update/<int:user_id>')
+api.add_resource(ReserveSpotApi, '/api/reserve_slot/<int:user_id>/create/<int:spot_id>')

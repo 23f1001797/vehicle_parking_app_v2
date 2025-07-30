@@ -59,7 +59,6 @@ export default {
     },
     mounted() {
         this.load_duration_data();
-        console.log('end');
         this.fetchSummaryData();
     },
     methods: {

@@ -29,7 +29,7 @@ export default {
                                 required readonly>
                         </div>
                         <button type="submit" class="btn btn-primary">Save</button>
-                        <button class="btn btn-outline-secondary">Cancle</button>
+                        <button class="btn btn-outline-secondary" @click="$router.go(-1)">Cancel</button>
                     </form>
                 </div>
             </div>
@@ -76,8 +76,8 @@ export default {
                 body: JSON.stringify(this.formData)
             }).then(response => response.json())
                 .then(data => {
-                    this.$router.push("/admin/dashboard")
-                    this.$router.push({ name: 'view_parking_lot_page', params: { id: id } })
+                    // this.$router.push({ name: 'view_parking_lot_page', params: { id: id } })
+                    this.$router.go(-1);
                 })
         }
     }

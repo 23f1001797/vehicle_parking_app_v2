@@ -1,0 +1,335 @@
+openapi: 3.0.0
+info:
+  title: Vehical Parking Management Application API
+  version: 1.0.0
+  description: REST API for managing parking lots, spots, reservations, and users
+  contact:
+    email: developer@gmail.com 
+    
+servers:
+  - url: http://localhost:5000
+  
+tags: 
+  - name: parking_lot
+    description: routes for parking_lots
+  - name: parking_spot
+    description: routes for parking_spots
+  - name: users
+    description: routes for users
+  - name: reservation
+    description: routes for reservations
+paths:
+  /api/parking_lot:
+    get:
+      summary: Get all parking lots
+      description: get parking lots (admin)
+      tags: 
+        - parking_lot
+      security:
+        - TokenAuth: []
+      operationId: get_parkinglots
+      responses:
+        '200':
+          description: List of parking lots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingLot'
+        '404':
+          description: No parking lots found
+    
+    post:
+      summary: Create a parking lot, spots should be created automatically according to the spots_count
+      description: create parking lot (admin)
+      tags: 
+        - parking_lot
+      security:
+        - TokenAuth: []
+      operationId: create_lots
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParkingLotCreate'
+      responses:
+        '201':
+          description: Parking lot created
+        '400': 
+          description: Error creating parking lot 
+
+  /api/parking_lot/{lot_id}:
+    put:
+      summary: Update a parking lot don't change the capacity
+      description: update parking lot (admin)
+      tags: 
+        - parking_lot
+      security:
+        - TokenAuth: []
+      operationId: update_lots
+      parameters:
+        - in: path
+          name: lot_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ParkingLotupdate'
+      responses:
+        '200':
+          description: Parking lot updated
+        '400':
+          description: Error updating parking lot
+
+    delete:
+      summary: Delete a parking lot, only if all the spots are available of the lot
+      description: delete parking lot (admin)
+      tags: 
+        - parking_lot
+      security:
+        - TokenAuth: []
+      operationId: delete_lots
+      parameters:
+        - in: path
+          name: lot_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Parking lot deleted successfully
+        '404':
+          description: Parking lot not found
+
+  /api/parking_spot:
+    get:
+      summary: Get all parking spots
+      description: get all parking spots (admin)
+      operationId: get_parkingspots
+      tags: 
+        - parking_spot
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: List of spots
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ParkingSpot'
+        '404':
+          description: No spots found
+
+
+  /api/parking_spot/{spot_id}:
+    delete:
+      summary: Delete a parking spot
+      description: delete parking spot if it is available (admin)
+      operationId: detete_spot
+      tags: 
+        - parking_spot
+      security:
+        - TokenAuth: []
+      parameters:
+        - in: path
+          name: spot_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Parking spot deleted successfully
+        '404':
+          description: Parking spot not found
+
+  /api/reservation:
+    get:
+      summary: Get all reservations for admin and user's reservations for user
+      description: get reservations (admin or user)
+      operationId: get_reservations
+      tags: 
+        - reservation
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: List of reservations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/Reservations'
+        '404':
+          description: No reservations found
+
+  /api/reservation/{reserve_id}:
+
+    delete:
+      summary: Delete reservation
+      description: delete reservation if it is paid (admin)
+      operationId: delete_reservation
+      tags:
+        - reservation
+      security:
+        - TokenAuth: []
+      parameters:
+        - in: path
+          name: reserve_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Reservation deleted successfully
+        '404':
+          description: Reservation not found
+
+  /api/users:
+    get:
+      summary: Get all users
+      description: get all users details (admim)
+      operationId: get_user_details
+      tags:
+        - users
+      security:
+        - TokenAuth: []
+      responses:
+        '200':
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  $ref: '#/components/schemas/Users'
+        '404':
+          description: No users found
+
+  /api/users/{user_id}:
+    delete:
+      summary: Delete user
+      description: delete user (admin)
+      operationId: delete_user
+      tags: 
+        - users
+      security:
+        - TokenAuth: []
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User deleted successfully
+        '404':
+          description: User not found
+
+components:
+  securitySchemes:
+    TokenAuth:
+      type: apiKey
+      in: header
+      name: Authentication-Token
+
+  schemas:
+    ParkingLot:
+      type: object
+      properties:
+        id:
+          type: integer
+        pl_name:
+          type: string
+        price:
+          type: number
+        address:
+          type: string
+        pincode:
+          type: integer
+        created_at:
+          type: date-time
+        capacity:
+          type: integer
+        spots_count:
+          type: integer
+
+    ParkingSpot:
+      type: object
+      properties:
+        id:
+          type: integer
+        lot_id:
+          type: integer
+        status:
+          type: string
+
+    Reservations:
+      type: object
+      properties:
+        id:
+          type: integer
+        spot_id:
+          type: integer
+        user_id:
+          type: integer
+        vrn:
+          type: string
+        parking_timestamp:
+          type: date-time
+        leaving_timestamp:
+          type: date-time
+        duration:
+          type: string
+        status:
+          type: string
+        parking_cost:
+          type: number
+
+    Users:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+
+    ParkingLotCreate:
+      type: object
+      properties:
+        pl_name:
+          type: string
+        price:
+          type: number
+        address:
+          type: string
+        pincode:
+          type: integer
+        capacity:
+          type: integer
+          
+    
+    ParkingLotupdate:
+      type: object
+      properties:
+        pl_name:
+          type: string
+        price:
+          type: number
+        address:
+          type: string
+        pincode:
+          type: integer

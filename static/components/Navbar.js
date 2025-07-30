@@ -32,9 +32,18 @@ export default {
                                     <router-link :to="{name: 'user_summary_page', params: {user_id: userID}}" class="nav-link">Summary</router-link>
                                 </li>
                             </ul>
-                            <ul v-if="loggedIn" class="navbar-nav ms-auto mb-2 mb-lg-0">
+                            <ul v-if="loggedIn && userRole === 'user'" class="navbar-nav ms-auto mb-2 mb-lg-0">
                                 <li class="nav-item mx-3">
-                                    <router-link :to="{name: 'profile', params: {user_id: userID}}" class="nav-link"><i
+                                    <router-link :to="{name: 'user_profile', params: {user_id: userID}}" class="nav-link"><i
+                                            class="fa-solid fa-user"></i></router-link>
+                                </li>
+                                <li class="nav-item mx-3">
+                                    <button class="nav-link" @click="logoutUser">LogOut</button>
+                                </li>
+                            </ul>
+                            <ul v-if="loggedIn && userRole === 'admin'" class="navbar-nav ms-auto mb-2 mb-lg-0">
+                                <li class="nav-item mx-3">
+                                    <router-link :to="{name: 'admin_profile', params: {user_id: userID}}" class="nav-link"><i
                                             class="fa-solid fa-user"></i></router-link>
                                 </li>
                                 <li class="nav-item mx-3">

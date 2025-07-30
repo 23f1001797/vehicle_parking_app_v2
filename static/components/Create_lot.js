@@ -28,7 +28,7 @@ export default {
                                 required>
                         </div>
                             <button type="submit" class="btn btn-primary">Create</button>
-                            <button class="btn btn-outline-secondary">Cancel</button>
+                            <button class="btn btn-outline-secondary" @click="$router.go(-1)">Cancel</button>
                     </form>
                 </div>
             </div>
@@ -57,7 +57,13 @@ export default {
                 body: JSON.stringify(this.formData)
             }).then(response => response.json())
                 .then(data => {
-                    this.$router.push("/admin/dashboard")
+                    if (data.error) {
+                        this.message = data.error
+                    } else {
+                        // this.$router.push("/admin/dashboard")
+                        this.$router.go(-1);
+                    }
+
                 })
         }
     }

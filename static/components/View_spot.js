@@ -43,7 +43,7 @@ export default {
                             <input type="text" class="form-control" id="status" v-model="spotData.status" required readonly>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <a href="javascript:history.back()" class="btn btn-outline-secondary">Close</a>
+                            <button class="btn btn-outline-secondary" @click="$router.go(-1)">Cancel</button>
                             <button @click="remove" class="btn btn-primary">delete</button>
                         </div>
                     </div>
@@ -98,12 +98,8 @@ export default {
             }).then(response => response.json())
                 .then(data => {
                     console.log("deleted spot")
-                    this.$router.push({
-                        name: 'view_parking_lot_page',
-                        params: {
-                            id: this.$route.params.lot_id
-                        }
-                    })
+                    // this.$router.push({name: 'view_parking_lot_page', params: {id: this.$route.params.lot_id}})
+                    this.$router.go(-1);
                 })
         }
     }

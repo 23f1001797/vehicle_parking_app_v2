@@ -48,7 +48,7 @@ export default {
                         </div>
                         <div class="d-flex justify-content-between">
                             <button type="submit" class="btn btn-primary">Release</button>
-                            <button  class="btn btn-outline-secondary">Cancel</button>
+                            <button class="btn btn-outline-secondary" @click="$router.go(-1)">Cancel</button>
                         </div>
                         </form>
                         <div class="row text-center" v-if="message">
@@ -110,7 +110,8 @@ export default {
                         this.message = data.error
                     } else {
                         this.message = data.message
-                        this.$router.push(`/user/${this.formData.user_id}/dashboard`)
+                        // this.$router.push(`/user/${this.formData.user_id}/dashboard`)
+                        this.$router.go(-1);
                     }
                 })
         }
